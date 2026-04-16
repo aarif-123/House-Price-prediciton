@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Estates | AI House Price Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+                url('/static/house_bg.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: -1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            padding: 40px 20px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        input, select {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        button {
+            width: 100%;
+            margin-top: 32px;
+            padding: 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.5);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 1px solid var(--glass-border);
+            text-align: center;
+            display: none;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .price-label {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .price-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 4rem;
+            font-weight: 700;
+            color: #4ade80;
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #a5b4fc;
+            margin-top: 16px;
+        }
+
+        .status-footer {
+            margin-top: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+
+        .status-dot.online {
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            h1 { font-size: 2.2rem; }
+            .glass-card { padding: 24px; }
+            .price-value { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="glass-card">
+        <header>
+            <h1>Elite Estates</h1>
+            <p class="subtitle">Harnessing advanced machine learning to provide accurate market valuations in seconds.</p>
+        </header>
+
+        <form id="predictForm">
+            <div class="form-grid">
+                <div class="input-group">
+                    <label><i data-lucide="star"></i> Overall Quality (1-10)</label>
+                    <input type="number" id="overallQual" value="7" min="1" max="10" required>
+                </div>
+                <div class="input-group">
+                    <label><i data-lucide="maximize"></i> Living Area (sq ft)</label>
+                    <input type="number" id="grLivArea" value="1800" required>
+                </div>
+                <div class="input-group">
+                    <label><i data-lucide="car"></i> Garage Capacity</label>
+                    <input type="number" id="garageCars" value="2" required>
+                </div>
+                <div class="input-group">
+                    <label><i data-lucide="calendar"></i> Year Built</label>
+                    <input type="number" id="yearBuilt" value="2005" required>
+                </div>
+                <div class="input-group">
+                    <label><i data-lucide="arrow-down-to-line"></i> Basement Area</label>
+                    <input type="number" id="totalBsmtSF" value="1000" required>
+                </div>
+                <div class="input-group">
+                    <label><i data-lucide="bath"></i> Full Bathrooms</label>
+                    <input type="number" id="fullBath" value="2" required>
+                </div>
+                <div class="input-group">
+                    <label><i data-lucide="map-pin"></i> Neighborhood</label>
+                    <select id="neighborhood">
+                        <option value="CollgCr">College Creek</option>
+                        <option value="NAmes">North Ames</option>
+                        <option value="OldTown">Old Town</option>
+                        <option value="Edwards">Edwards</option>
+                        <option value="Somerst">Somerset</option>
+                        <option value="Crawfor">Crawford</option>
+                        <option value="Gilbert">Gilbert</option>
+                        <option value="NridgHt">NoRidge Heights</option>
+                        <option value="Sawyer">Sawyer</option>
+                        <option value="SawyerW">Sawyer West</option>
+                        <option value="Timber">Timberland</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label><i data-lucide="layers"></i> Zoning</label>
+                    <select id="msZoning">
+                        <option value="RL">Residential (Low Density)</option>
+                        <option value="RM">Residential (Medium Density)</option>
+                        <option value="FV">Floating Village Residential</option>
+                        <option value="RH">Residential (High Density)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn">
+                <i data-lucide="trending-up"></i> Calculate Valuation
+            </button>
+        </form>
+
+        <div id="resultSection" class="result-section">
+            <p class="price-label">Estimated Market Value</p>
+            <p class="price-value" id="priceDisplay">$0</p>
+            <div class="badge" id="versionBadge">Model v1.2.0</div>
+        </div>
+
+        <div class="status-footer">
+            <div id="statusDot" class="status-dot"></div>
+            <span id="statusText">System Status: Checking...</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    const form = document.getElementById('predictForm');
+    const resultSection = document.getElementById('resultSection');
+    const priceDisplay = document.getElementById('priceDisplay');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const versionBadge = document.getElementById('versionBadge');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Check system status
+    async function checkHealth() {
+        try {
+            const res = await fetch('/health');
+            const data = await res.json();
+            statusDot.classList.add('online');
+            statusText.textContent = `System Status: Online`;
+            versionBadge.textContent = `Model v${data.model_version}`;
+        } catch (e) {
+            statusDot.classList.remove('online');
+            statusText.textContent = `System Status: Offline`;
+        }
+    }
+
+    checkHealth();
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Analyzing...';
+        lucide.createIcons();
+
+        const row = {
+            OverallQual: parseInt(document.getElementById('overallQual').value),
+            GrLivArea: parseInt(document.getElementById('grLivArea').value),
+            GarageCars: parseInt(document.getElementById('garageCars').value),
+            TotalBsmtSF: parseInt(document.getElementById('totalBsmtSF').value),
+            FullBath: parseInt(document.getElementById('fullBath').value),
+            YearBuilt: parseInt(document.getElementById('yearBuilt').value),
+            Neighborhood: document.getElementById('neighborhood').value,
+            MSZoning: document.getElementById('msZoning').value
+        };
+
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rows: [row] })
+            });
+            
+            if (!response.ok) throw new Error('API Error');
+            
+            const result = await response.json();
+            
+            // Format price
+            const price = result.predictions[0];
+            priceDisplay.textContent = '$' + price.toLocaleString();
+            
+            resultSection.style.display = 'block';
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            
+        } catch (error) {
+            console.error(error);
+            alert("Error: Valuation engine unavailable.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="trending-up"></i> Calculate Valuation';
+            lucide.createIcons();
+        }
+    });
+
+    // Add some hover effects on inputs for extra flair
+    document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('focus', () => {
+            el.parentElement.querySelector('label').style.color = 'var(--primary)';
+        });
+        el.addEventListener('blur', () => {
+            el.parentElement.querySelector('label').style.color = 'var(--text-muted)';
+        });
+    });
+</script>
+
+<style>
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+</body>
+</html>
