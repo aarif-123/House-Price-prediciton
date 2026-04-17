@@ -99,7 +99,9 @@ class HouseData(BaseModel):
     GarageCars: int
     TotalBsmtSF: int
     FullBath: int
+    HalfBath: int = 0
     YearBuilt: int
+    YrSold: int = 2010
     Neighborhood: str
     MSZoning: str
 
@@ -369,12 +371,24 @@ def drift_report(request: DriftRequest):
         if c in df.columns:
             drift["missing_rate"][c] = float(pd.isna(df[c]).mean())
 
+    # For the drift report, we want to see drift on the FINAL features used by the model.
+    # We use the 'engineer' step of our model pipeline to transform the raw batch.
+    try:
+        if model and hasattr(model, "named_steps") and "engineer" in model.named_steps:
+            df_engineered = model.named_steps["engineer"].transform(df)
+        else:
+            df_engineered = df
+    except Exception as e:
+        logger.warning(f"Could not run engineering for drift report: {e}")
+        df_engineered = df
+
     # Numeric drift (PSI)
     for c in metadata.get("numeric_features", []):
         ref_c = ((ref.get("numeric") or {}).get(c) or {})
         edges = ref_c.get("bins") or []
         expected = ref_c.get("proportions") or []
-        actual = _numeric_actual_proportions(df.get(c, pd.Series(dtype=float)), edges)
+        # Use the engineered dataframe for numeric drift check
+        actual = _numeric_actual_proportions(df_engineered.get(c, pd.Series(dtype=float)), edges)
         drift["numeric_psi"][c] = _psi(expected, actual) if actual else None
 
     # Categorical drift (Total Variation Distance vs reference proportions)
