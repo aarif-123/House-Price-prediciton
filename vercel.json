@@ -1,5 +1,21 @@
 {
-  "builds": [{ "src": "api/index.py", "use": "@vercel/python" }],
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": [
+          "../artifacts/**",
+          "../index.html",
+          "../house_bg.png",
+          "../feature_engineering.py",
+          "artifacts/**",
+          "index.html",
+          "house_bg.png",
+          "feature_engineering.py"
+        ]
+      }
+    }
+  ],
   "routes": [{ "src": "/(.*)", "dest": "api/index.py" }]
 }
-

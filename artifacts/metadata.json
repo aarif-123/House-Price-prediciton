@@ -26,12 +26,12 @@
         "Neighborhood",
         "MSZoning"
     ],
-    "model_version": "3.0-XGBoost-Eng-Tuned",
+    "model_version": "3.1-RandomForest-Eng-Tuned",
     "target_transform": "log1p",
     "baseline_metrics": {
-        "mae_usd": 17270.828124999993,
-        "rmse_usd": 25006.210973678542,
-        "mape": 0.11148954273973816
+        "mae_usd": 17835.73620744479,
+        "rmse_usd": 25783.65125107565,
+        "mape": 0.11233113936032937
     },
     "reference_distributions": {
         "numeric": {

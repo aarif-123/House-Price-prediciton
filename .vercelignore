@@ -1,0 +1,8 @@
+__pycache__/
+*.ipynb
+*.csv
+test_*.py
+docker-compose.yml
+Dockerfile
+prometheus.yml
+grafana/

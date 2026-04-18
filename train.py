@@ -5,51 +5,18 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from xgboost import XGBRegressor
+from feature_engineering import FeatureEngineer
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AdvancedTraining")
-
-class FeatureEngineer(BaseEstimator, TransformerMixin):
-    """Custom transformer for House Price feature engineering."""
-    def __init__(self):
-        pass
-
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        X = X.copy()
-        
-        # 1. House Age
-        # Assume YearBuilt is present. If YrSold is missing, use modern year (e.g. 2011)
-        # Note: In the official dataset, the last year of sale is 2010.
-        yr_sold = X['YrSold'] if 'YrSold' in X.columns else 2010
-        X['HouseAge'] = yr_sold - X['YearBuilt']
-        
-        # 2. Total Area Interaction
-        X['TotalSF'] = X['GrLivArea'] + X['TotalBsmtSF'].fillna(0)
-        
-        # 3. Quality and Area Interaction (Very important for price)
-        X['Qual_Area_Interact'] = X['OverallQual'] * X['GrLivArea']
-        
-        # 4. Bathrooms Total
-        if 'FullBath' in X.columns and 'HalfBath' in X.columns:
-            X['TotalBath'] = X['FullBath'] + (0.5 * X['HalfBath'])
-        else:
-            X['TotalBath'] = X['FullBath'] if 'FullBath' in X.columns else 1
-
-        # Drop columns that are no longer needed if we want to be strict, 
-        # but here we keep them and let the model decide or ColumnTransformer handle it.
-        return X
 
 def _numeric_reference(x: pd.Series, bins: int = 10) -> dict:
     """Build a lightweight numeric distribution reference for drift checks."""
@@ -136,52 +103,20 @@ def train_advanced_model():
     model_pipeline = Pipeline(steps=[
         ("engineer", FeatureEngineer()),
         ("preprocessor", preprocessor),
-        ("regressor", XGBRegressor(random_state=42))
+        ("regressor", RandomForestRegressor(
+            n_estimators=450,
+            max_depth=18,
+            min_samples_split=4,
+            min_samples_leaf=2,
+            random_state=42,
+            n_jobs=1,
+        ))
     ])
 
-    # 5. Model Training (Optimized for speed/completion)
-    logger.info("Starting XGBoost Training (V3.0)...")
+    # 5. Model Training (Vercel-friendly runtime footprint)
+    logger.info("Starting RandomForest training (V3.1)...")
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.15, random_state=42)
-    
-    # Use the pre-defined pipeline
     best_model = model_pipeline
-
-    # Check for GPU support (Modern XGBoost 2.0+ and Legacy)
-    gpu_params = {'tree_method': 'hist'} # Default to CPU
-    try:
-        import xgboost as xgb
-        v = [int(i) for i in xgb.__version__.split('.')[:2]]
-        if v[0] >= 2:
-            # Modern XGBoost: tree_method='hist', device='cuda'
-            try:
-                test_model = xgb.XGBRegressor(tree_method='hist', device='cuda')
-                test_model.fit(np.array([[0]]), np.array([0]))
-                gpu_params = {'tree_method': 'hist', 'device': 'cuda'}
-                logger.info("GPU (CUDA) detected! Using GPU acceleration.")
-            except Exception:
-                # Fallback to legacy gpu_hist just in case
-                test_model = xgb.XGBRegressor(tree_method='gpu_hist')
-                test_model.fit(np.array([[0]]), np.array([0]))
-                gpu_params = {'tree_method': 'gpu_hist'}
-                logger.info("Legacy GPU (gpu_hist) detected!")
-        else:
-            # Legacy XGBoost
-            test_model = xgb.XGBRegressor(tree_method='gpu_hist')
-            test_model.fit(np.array([[0]]), np.array([0]))
-            gpu_params = {'tree_method': 'gpu_hist'}
-            logger.info("GPU (gpu_hist) detected!")
-    except Exception as e:
-        logger.info(f"GPU not available, falling back to CPU. (Reason: {str(e)[:100]})")
-        gpu_params = {'tree_method': 'hist'}
-
-    best_model.set_params(
-        regressor__n_estimators=1000,
-        regressor__learning_rate=0.05,
-        regressor__max_depth=5,
-        regressor__subsample=0.8,
-        regressor__colsample_bytree=0.8,
-        **{f"regressor__{k}": v for k, v in gpu_params.items()}
-    )
     best_model.fit(X_train, y_train)
 
     # 6. Evaluation
@@ -206,7 +141,7 @@ def train_advanced_model():
         "feature_columns": BASE_FEATURES,
         "numeric_features": num_cols, # Used for PSI report
         "categorical_features": cat_cols,
-        "model_version": "3.0-XGBoost-Eng-Tuned",
+        "model_version": "3.1-RandomForest-Eng-Tuned",
         "target_transform": "log1p",
         "baseline_metrics": {
             "mae_usd": mae,
@@ -223,7 +158,7 @@ def train_advanced_model():
     with open(artifacts_dir / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=4)
 
-    logger.info(f"Success! Model V3.0 is ready. MAE: ${mae:,.2f}")
+    logger.info(f"Success! Model V3.1 is ready. MAE: ${mae:,.2f}")
 
 if __name__ == "__main__":
     train_advanced_model()

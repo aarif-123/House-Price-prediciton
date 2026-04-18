@@ -144,22 +144,46 @@ app = FastAPI(title="House Price Predictor")
 Instrumentator().instrument(app).expose(app)
 
 # 4. Load Model and Metadata
-# Use absolute paths to prevent working-directory errors
+# Use robust path resolution because serverless runtimes may package files in different roots.
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "artifacts" / "model.joblib"
-META_PATH = BASE_DIR / "artifacts" / "metadata.json"
+_ARTIFACT_CANDIDATES = [
+    BASE_DIR / "artifacts",
+    BASE_DIR.parent / "artifacts",
+    Path.cwd() / "artifacts",
+    Path("/var/task/artifacts"),
+]
 
-if not MODEL_PATH.exists():
-    logger.error(f"Model file not found at {MODEL_PATH}! Please run training first.")
+def _resolve_artifact_paths() -> tuple[Path | None, Path | None]:
+    for artifacts_dir in _ARTIFACT_CANDIDATES:
+        model_path = artifacts_dir / "model.joblib"
+        meta_path = artifacts_dir / "metadata.json"
+        if model_path.exists():
+            return model_path, meta_path if meta_path.exists() else None
+    return None, None
+
+MODEL_PATH, META_PATH = _resolve_artifact_paths()
+
+if MODEL_PATH is None:
+    logger.error(f"Model file not found. Checked: {_ARTIFACT_CANDIDATES}")
     model = None
     metadata = {}
 else:
-    model = joblib.load(MODEL_PATH)
-    import json
-    metadata = json.loads(META_PATH.read_text())
+    try:
+        model = joblib.load(MODEL_PATH)
+        if META_PATH is not None:
+            import json
+            metadata = json.loads(META_PATH.read_text())
+        else:
+            logger.error("Metadata file not found next to model artifact.")
+            metadata = {}
+    except Exception as e:
+        logger.exception(f"Failed to load model/metadata: {e}")
+        model = None
+        metadata = {}
 
 _PREDICTION_STORE_TTL_SECONDS = int(os.getenv("PREDICTION_STORE_TTL_SECONDS", "86400"))
 _prediction_store: dict[str, dict] = {}
+_FEATURE_DEFAULTS = {"YrSold": 2010, "HalfBath": 0}
 
 def _gc_prediction_store(now: float) -> None:
     if not _prediction_store:
@@ -215,6 +239,18 @@ def _categorical_actual_proportions(values: pd.Series, expected_keys: set[str]) 
         out["__OTHER__"] = float(other) / total
     return out
 
+
+def _align_features(input_data: pd.DataFrame, feature_columns: list[str]) -> pd.DataFrame:
+    """Ensure expected feature columns exist, filling known optional ones with defaults."""
+    data = input_data.copy()
+    for col in feature_columns:
+        if col not in data.columns:
+            if col in _FEATURE_DEFAULTS:
+                data[col] = _FEATURE_DEFAULTS[col]
+            else:
+                data[col] = np.nan
+    return data[feature_columns]
+
 # 5. API Endpoints
 app.mount("/static", StaticFiles(directory=BASE_DIR, html=True), name="static")
 
@@ -262,7 +298,7 @@ def predict(request: PredictionRequest):
             FEATURE_YEARBUILT.observe(float(r.YearBuilt))
         
         # Ensure we have all columns in the correct order
-        input_data = input_data[metadata["feature_columns"]]
+        input_data = _align_features(input_data, metadata["feature_columns"])
         
         # Run prediction
         raw_preds = model.predict(input_data)
@@ -302,7 +338,7 @@ def predict(request: PredictionRequest):
         }
     except Exception as e:
         logger.error(f"Prediction failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=repr(e))
 
 @app.post("/feedback", response_model=FeedbackResponse)
 def feedback(request: FeedbackRequest):
@@ -412,7 +448,7 @@ def drift_report(request: DriftRequest):
         if not labeled.empty:
             batch_metrics["has_labels"] = True
 
-            X = labeled[metadata.get("feature_columns", [])]
+            X = _align_features(labeled, metadata.get("feature_columns", []))
             y_true = labeled["actual_price"].astype(float).to_numpy()
 
             raw_preds = model.predict(X)
