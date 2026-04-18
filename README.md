@@ -41,26 +41,22 @@ flowchart LR
 .
 |-- api/
 |   `-- index.py
-|-- app/
-|   |-- config.py
-|   |-- frontend.py
-|   |-- main.py
-|   |-- model_service.py
-|   `-- schemas.py
 |-- artifacts/
 |   |-- metadata.json
 |   `-- model.joblib
-|-- scripts/
-|   |-- generate_sample_payload.py
-|   `-- train_model.py
-|-- src/
-|   |-- inference.py
-|   `-- training.py
-|-- tests/
-|   |-- test_api.py
-|   `-- test_training.py
+|-- grafana/
+|   `-- (monitoring config)
+|-- .gitignore
+|-- .vercelignore
+|-- feature_engineering.py
+|-- HousePrice_Modernized.ipynb
+|-- index.html
+|-- main.py
+|-- README.md
+|-- requirements.txt
+|-- train.py
 |-- vercel.json
-`-- README.md
+`-- vercel.md
 ```
 
 ## Run Locally
