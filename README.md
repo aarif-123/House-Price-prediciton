@@ -140,12 +140,3 @@ After deployment:
 pytest
 ```
 
-Current status: `4 passed`.
-
-## 90-Second Interview Script
-
-1. "I converted a notebook into a deployable ML product."
-2. "Training and inference are separated, and artifacts are versioned."
-3. "I exposed prediction through FastAPI with validation and observability basics."
-4. "I added a frontend so non-technical users can test the model quickly."
-5. "I automated quality checks and deployed it on Vercel for live demos."
