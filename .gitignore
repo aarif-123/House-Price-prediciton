@@ -15,9 +15,5 @@ venv/
 pytest-cache-files-*/
 
 .vercel
-Dockerfile
-docker-compose.yml
-prometheus.yml
-grafana/
 
 .vercel
