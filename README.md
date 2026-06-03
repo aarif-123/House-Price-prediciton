@@ -1,6 +1,6 @@
 # HouseValue AI - Production-Ready House Price Predictor
 
-An interview-grade ML project built from the Ames housing dataset:
+An Production-grade ML project built from the Ames housing dataset:
 - model training pipeline
 - inference API
 - basic frontend
