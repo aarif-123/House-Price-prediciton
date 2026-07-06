@@ -6,13 +6,7 @@ An Production-grade ML project built from the Ames housing dataset:
 - basic frontend
 - CI tests
 - one-command Vercel deployment
-
-## What Makes This Strong in Interviews
-
-- End-to-end ownership: data -> model -> API -> UI -> deployment.
-- Production concerns covered: artifact versioning, validation, health checks, request IDs, and automated tests.
-- Clear business story: instant price estimation for real-estate assistants and lending workflows.
-
+  
 ## Architecture
 
 ```mermaid
